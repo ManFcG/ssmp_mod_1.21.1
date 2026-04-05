@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "ssmp_mod",
+  "version": "${version}",
+  "name": "SSMP Discord Bridge",
+  "description": "Integracja Minecraft z Discordem dla serwera SSMP – chat, zdarzenia, komendy administracyjne.",
+  "authors": [
+    "SSMP Team"
+  ],
+  "contact": {
+    "sources": "https://github.com/ManFcG/ssmp_mod_1.21.1"
+  },
+  "license": "MIT",
+  "environment": "server",
+  "entrypoints": {
+    "server": [
+      "pl.ssmp.mod.SsmpMod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.1"
+  }
+}
