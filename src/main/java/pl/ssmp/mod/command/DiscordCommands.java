@@ -168,10 +168,9 @@ public class DiscordCommands extends ListenerAdapter {
         int maxPlayers = server.getMaxPlayerCount();
 
         // TPS – obliczane z ostatnich czasów tiku (dane serwera w milisekundach).
-        // getAverageTickTimeMillis() jest dostępne w MinecraftServer 1.21.x.
         String tpsStr;
         try {
-            double avgTickMs = server.getAverageTickTimeMillis();
+            double avgTickMs = server.getAverageTickTime();
             double tps = Math.min(20.0, 1000.0 / avgTickMs);
             tpsStr = String.format("%.1f", tps);
         } catch (Throwable t) {
