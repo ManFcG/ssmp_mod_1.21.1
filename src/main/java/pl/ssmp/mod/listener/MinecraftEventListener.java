@@ -157,7 +157,8 @@ public class MinecraftEventListener {
                     && mob.hasCustomName()
                     && entity.getWorld().getRegistryKey() != null) {
                 String mobName  = mob.getCustomName() != null ? mob.getCustomName().getString() : "Nieznane";
-                String deathMsg = source.getDeathMessage(entity).getString();
+                Text deathMsgText = source.getDeathMessage(entity);
+                String deathMsg = deathMsgText != null ? deathMsgText.getString() : mobName + " zginął";
                 bridge.sendNamedMobDeath(mobName, deathMsg);
             }
             return true; // zawsze zezwalaj na śmierć
