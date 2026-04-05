@@ -23,10 +23,9 @@ configurations {
     shade {
         transitive = true
     }
-    implementation {
-        extendsFrom shade
-    }
 }
+
+configurations.implementation.extendsFrom(configurations.shade)
 
 loom {
     mods {
