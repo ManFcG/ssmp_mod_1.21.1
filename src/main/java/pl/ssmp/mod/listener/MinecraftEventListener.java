@@ -1,6 +1,6 @@
 package pl.ssmp.mod.listener;
 
-import net.fabricmc.fabric.api.entity.event.v1.EntityWorldChangeEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
@@ -169,7 +169,7 @@ public class MinecraftEventListener {
     // ─────────────────────────────────────────────────────────────────────────
 
     private void registerDimensionChange() {
-        EntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) -> {
+        ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) -> {
             String playerName = player.getName().getString();
             String fromDim    = origin.getRegistryKey().getValue().toString();
             String toDim      = destination.getRegistryKey().getValue().toString();
