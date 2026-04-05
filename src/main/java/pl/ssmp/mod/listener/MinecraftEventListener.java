@@ -95,12 +95,14 @@ public class MinecraftEventListener {
     private void registerConnectionEvents() {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             String playerName = handler.getPlayer().getName().getString();
-            bridge.sendPlayerJoin(playerName);
+            String dimensionId = handler.getPlayer().getWorld().getRegistryKey().getValue().toString();
+            bridge.sendPlayerJoin(playerName, dimensionId);
         });
 
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             String playerName = handler.getPlayer().getName().getString();
-            bridge.sendPlayerLeave(playerName);
+            String dimensionId = handler.getPlayer().getWorld().getRegistryKey().getValue().toString();
+            bridge.sendPlayerLeave(playerName, dimensionId);
         });
     }
 
