@@ -75,7 +75,7 @@ public class DiscordEventListener extends ListenerAdapter {
 
         // Odpowiedź
         if (referenced != null) {
-            String refAuthor = referenced.getAuthor().getEffectiveName();
+            String refAuthor = referenced.getAuthor() != null ? referenced.getAuthor().getEffectiveName() : "Nieznany";
             String refSnip   = truncate(referenced.getContentDisplay(), 40);
             content.append("(odpowiedź na ").append(refAuthor).append(": \"").append(refSnip).append("\") ");
         }
