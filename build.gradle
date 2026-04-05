@@ -23,7 +23,9 @@ configurations {
     shade {
         transitive = true
     }
-    implementation.extendsFrom(shade)
+    implementation {
+        extendsFrom shade
+    }
 }
 
 loom {
