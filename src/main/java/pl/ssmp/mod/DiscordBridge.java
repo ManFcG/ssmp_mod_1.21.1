@@ -154,10 +154,9 @@ public class DiscordBridge {
                 .setThumbnail(config.isShowAvatars() ? avatarUrl : null)
                 .setColor(COLOR_JOIN)
                 .setTimestamp(Instant.now())
-                .setFooter("📍 Świat: " + friendlyDimName(dimensionId))
                 .build();
         sendEmbedsToEventsChannel(embed);
-        updatePlayerCountPresence();
+        updatePlayerCountPresence(1);
     }
 
     /** Gracz wyszedł → Discord */
@@ -170,10 +169,9 @@ public class DiscordBridge {
                 .setThumbnail(config.isShowAvatars() ? avatarUrl : null)
                 .setColor(COLOR_LEAVE)
                 .setTimestamp(Instant.now())
-                .setFooter("📍 Świat: " + friendlyDimName(dimensionId))
                 .build();
         sendEmbedsToEventsChannel(embed);
-        updatePlayerCountPresence();
+        updatePlayerCountPresence(-1);
     }
 
     /** Gracz zginął → Discord */
@@ -301,8 +299,12 @@ public class DiscordBridge {
     }
 
     private void updatePlayerCountPresence() {
+        updatePlayerCountPresence(0);
+    }
+
+    private void updatePlayerCountPresence(int delta) {
         if (!isReady() || server == null) return;
-        int count = server.getCurrentPlayerCount();
+        int count = server.getCurrentPlayerCount() + delta;
         updatePresence(OnlineStatus.ONLINE, "Obecnie graczy: " + count);
     }
 
