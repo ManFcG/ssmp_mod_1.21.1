@@ -3,6 +3,8 @@ package pl.ssmp.mod;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.OnlineStatus;
+import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -73,6 +75,7 @@ public class DiscordBridge {
     public void onReady() {
         ready.set(true);
         LOGGER.info("[SSMP] Bot Discord gotowy!");
+        jda.getPresence().setStatus(OnlineStatus.IDLE);
         // Rejestracja slash-komend dla konkretnego serwera (guild)
         if (!config.getGuildId().isBlank()) {
             Guild guild = jda.getGuildById(config.getGuildId());
@@ -123,6 +126,7 @@ public class DiscordBridge {
                 .setAuthor(playerName, null, config.isShowAvatars() ? avatarUrl : null)
                 .setDescription(pl.ssmp.mod.util.EmojiUtil.unicodeToText(message))
                 .setColor(COLOR_CHAT)
+                .setFooter("📍 Znajduje się w: " + friendlyDimName(dimensionId))
                 .build();
         channel.sendMessageEmbeds(embed).queue(null, e ->
                 LOGGER.warn("[SSMP] Błąd wysyłania czatu: {}", e.getMessage()));
@@ -141,42 +145,50 @@ public class DiscordBridge {
     }
 
     /** Gracz dołączył → Discord */
-    public void sendPlayerJoin(String playerName) {
+    public void sendPlayerJoin(String playerName, String dimensionId) {
         if (!isReady()) return;
         String avatarUrl = pl.ssmp.mod.util.AvatarUtil.getHeadUrl(playerName);
         MessageEmbed embed = new EmbedBuilder()
-                .setAuthor("➡️ " + playerName + " dołączył do gry", null,
-                        config.isShowAvatars() ? avatarUrl : null)
+                .setAuthor(playerName, null, config.isShowAvatars() ? avatarUrl : null)
+                .setDescription("➡️ Dołączył do serwera")
+                .setThumbnail(config.isShowAvatars() ? avatarUrl : null)
                 .setColor(COLOR_JOIN)
                 .setTimestamp(Instant.now())
+                .setFooter("📍 Świat: " + friendlyDimName(dimensionId))
                 .build();
         sendEmbedsToEventsChannel(embed);
+        updatePlayerCountPresence();
     }
 
     /** Gracz wyszedł → Discord */
-    public void sendPlayerLeave(String playerName) {
+    public void sendPlayerLeave(String playerName, String dimensionId) {
         if (!isReady()) return;
         String avatarUrl = pl.ssmp.mod.util.AvatarUtil.getHeadUrl(playerName);
         MessageEmbed embed = new EmbedBuilder()
-                .setAuthor("⬅️ " + playerName + " opuścił grę", null,
-                        config.isShowAvatars() ? avatarUrl : null)
+                .setAuthor(playerName, null, config.isShowAvatars() ? avatarUrl : null)
+                .setDescription("⬅️ Opuścił serwer")
+                .setThumbnail(config.isShowAvatars() ? avatarUrl : null)
                 .setColor(COLOR_LEAVE)
                 .setTimestamp(Instant.now())
+                .setFooter("📍 Świat: " + friendlyDimName(dimensionId))
                 .build();
         sendEmbedsToEventsChannel(embed);
+        updatePlayerCountPresence();
     }
 
     /** Gracz zginął → Discord */
     public void sendPlayerDeath(String playerName, String deathMessage) {
         if (!isReady()) return;
         String avatarUrl = pl.ssmp.mod.util.AvatarUtil.getHeadUrl(playerName);
-        MessageEmbed embed = new EmbedBuilder()
+        String dimId = getDimensionForPlayer(playerName);
+        EmbedBuilder eb = new EmbedBuilder()
                 .setAuthor("💀 " + playerName, null, config.isShowAvatars() ? avatarUrl : null)
                 .setDescription(pl.ssmp.mod.util.EmojiUtil.unicodeToText(deathMessage))
+                .setThumbnail(config.isShowAvatars() ? avatarUrl : null)
                 .setColor(COLOR_DEATH)
-                .setTimestamp(Instant.now())
-                .build();
-        sendEmbedsToEventsChannel(embed);
+                .setTimestamp(Instant.now());
+        if (dimId != null) eb.setFooter("📍 Świat: " + friendlyDimName(dimId));
+        sendEmbedsToEventsChannel(eb.build());
     }
 
     /** Nazwane stworzenie zginęło → Discord */
@@ -198,16 +210,18 @@ public class DiscordBridge {
         switch (type) {
             case "goal"      -> { color = COLOR_ADV_GOAL; emoji = "🎯"; }
             case "challenge" -> { color = COLOR_ADV_CHAL; emoji = "🏆"; }
-            default          -> { color = COLOR_ADV_TASK; emoji = "✅"; }
+            default          -> { color = COLOR_ADV_TASK; emoji = "🥇"; }
         }
         String avatarUrl = pl.ssmp.mod.util.AvatarUtil.getHeadUrl(playerName);
-        MessageEmbed embed = new EmbedBuilder()
+        String dimId = getDimensionForPlayer(playerName);
+        EmbedBuilder eb = new EmbedBuilder()
                 .setAuthor(emoji + " " + playerName, null, config.isShowAvatars() ? avatarUrl : null)
                 .setDescription("Odblokował osiągnięcie: **" + advancementName + "**")
+                .setThumbnail(config.isShowAvatars() ? avatarUrl : null)
                 .setColor(color)
-                .setTimestamp(Instant.now())
-                .build();
-        sendEmbedsToEventsChannel(embed);
+                .setTimestamp(Instant.now());
+        if (dimId != null) eb.setFooter("📍 Świat: " + friendlyDimName(dimId));
+        sendEmbedsToEventsChannel(eb.build());
     }
 
     /** Gracz zmienił wymiar → Discord */
@@ -228,18 +242,21 @@ public class DiscordBridge {
     /** Serwer zaczyna się uruchamiać */
     public void sendServerStarting() {
         if (!isReady()) return;
+        updatePresence(OnlineStatus.IDLE, null);
         sendToEventsChannel("🚀 **" + config.getServerName() + "** uruchamia się…", COLOR_SERVER_ON);
     }
 
     /** Serwer jest gotowy */
     public void sendServerStarted() {
         if (!isReady()) return;
+        updatePlayerCountPresence();
         sendToEventsChannel("✅ **" + config.getServerName() + "** jest gotowy! Możesz dołączyć.", COLOR_SERVER_ON);
     }
 
     /** Serwer zaczyna się zatrzymywać */
     public void sendServerStopping() {
         if (!isReady()) return;
+        updatePresence(OnlineStatus.IDLE, null);
         sendToEventsChannel("🛑 **" + config.getServerName() + "** zatrzymuje się…", COLOR_SERVER_OFF);
     }
 
@@ -273,6 +290,28 @@ public class DiscordBridge {
     // ─────────────────────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
+
+    private void updatePresence(OnlineStatus status, String activityText) {
+        if (jda == null) return;
+        if (activityText != null) {
+            jda.getPresence().setPresence(status, Activity.playing(activityText));
+        } else {
+            jda.getPresence().setStatus(status);
+        }
+    }
+
+    private void updatePlayerCountPresence() {
+        if (!isReady() || server == null) return;
+        int count = server.getCurrentPlayerCount();
+        updatePresence(OnlineStatus.ONLINE, "Obecnie graczy: " + count);
+    }
+
+    private String getDimensionForPlayer(String playerName) {
+        if (server == null) return null;
+        var player = server.getPlayerManager().getPlayer(playerName);
+        if (player == null) return null;
+        return player.getWorld().getRegistryKey().getValue().toString();
+    }
 
     private void sendToEventsChannel(String message, Color color) {
         TextChannel channel = getTextChannel(config.getEventsChannelId());
