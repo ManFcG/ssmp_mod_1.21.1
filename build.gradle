@@ -1,6 +1,7 @@
 plugins {
     id 'fabric-loom' version '1.7.4'
     id 'maven-publish'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 version = project.mod_version
@@ -15,6 +16,12 @@ repositories {
     maven {
         name = 'JDA'
         url = 'https://m2.dv8tion.net/releases'
+    }
+}
+
+configurations {
+    shade {
+        transitive = true
     }
 }
 
@@ -34,10 +41,11 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     // JDA Discord API (exclude voice support to reduce jar size, exclude slf4j to use Minecraft's)
-    include(implementation("net.dv8tion:JDA:${project.jda_version}") {
+    shade("net.dv8tion:JDA:${project.jda_version}") {
         exclude group: 'club.minnced', module: 'opus-java'
         exclude group: 'org.slf4j',    module: 'slf4j-api'
-    })
+    }
+    implementation configurations.shade
 }
 
 processResources {
@@ -68,9 +76,21 @@ java {
 }
 
 jar {
+    archiveClassifier = 'dev'
     from("LICENSE") {
         rename { "${it}_${project.archives_base_name}" }
     }
+}
+
+shadowJar {
+    configurations = [project.configurations.shade]
+    archiveClassifier = 'dev-shadow'
+}
+
+remapJar {
+    inputFile = shadowJar.archiveFile
+    dependsOn shadowJar
+    archiveClassifier = ''
 }
 
 publishing {
