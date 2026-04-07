@@ -29,11 +29,167 @@ import java.util.Map;
  *   DISCORD_CONSOLE_CHANNEL_ID – ID kanału konsoli (opcjonalnie)
  *   DISCORD_ADMIN_USER_IDS   – ID adminów oddzielone przecinkami
  *   SERVER_NAME              – nazwa serwera w wiadomościach
+ *
+ * Dostępne placeholdery w szablonach wiadomości:
+ *   {player}      – nazwa gracza
+ *   {message}     – treść wiadomości (śmierć, czat itp.)
+ *   {dimension}   – przyjazna nazwa wymiaru
+ *   {from}        – wymiar źródłowy (zmiana wymiaru)
+ *   {to}          – wymiar docelowy (zmiana wymiaru)
+ *   {advancement} – nazwa osiągnięcia
+ *   {server}      – nazwa serwera
+ *   {mob}         – nazwa nazwanego stworzenia
+ *   {count}       – liczba graczy online
  */
 public class ModConfig {
 
+    // ── Wewnętrzna klasa szablonów wiadomości ────────────────────────────────
+
+    /**
+     * Szablony wiadomości wysyłanych na Discord.
+     * Obsługiwane placeholdery: {player}, {message}, {dimension}, {from}, {to},
+     * {advancement}, {server}, {mob}, {count}.
+     */
+    public static class Messages {
+
+        // Połączenia
+        @SerializedName("player_join")
+        public String playerJoin = "➡️ Dołączył do serwera";
+
+        @SerializedName("player_leave")
+        public String playerLeave = "⬅️ Opuścił serwer";
+
+        // Śmierć
+        @SerializedName("player_death")
+        public String playerDeath = "{message}";
+
+        @SerializedName("named_mob_death")
+        public String namedMobDeath = "☠️ **{mob}** – {message}";
+
+        // Osiągnięcia (task / goal / challenge)
+        @SerializedName("advancement_task")
+        public String advancementTask = "Odblokował osiągnięcie: **{advancement}**";
+
+        @SerializedName("advancement_goal")
+        public String advancementGoal = "Odblokował osiągnięcie: **{advancement}**";
+
+        @SerializedName("advancement_challenge")
+        public String advancementChallenge = "Odblokował osiągnięcie: **{advancement}**";
+
+        // Zmiana wymiaru
+        @SerializedName("dimension_change")
+        public String dimensionChange = "Teleportował się z **{from}** do **{to}**";
+
+        // Cykl życia serwera
+        @SerializedName("server_starting")
+        public String serverStarting = "🚀 **{server}** uruchamia się…";
+
+        @SerializedName("server_started")
+        public String serverStarted = "✅ **{server}** jest gotowy! Możesz dołączyć.";
+
+        @SerializedName("server_stopping")
+        public String serverStopping = "🛑 **{server}** zatrzymuje się…";
+
+        @SerializedName("server_stopped")
+        public String serverStopped = "⛔ **{server}** jest offline.";
+
+        // Komendy czatu
+        @SerializedName("me_command")
+        public String meCommand = "✍️ {message}";
+
+        @SerializedName("say_command")
+        public String sayCommand = "📢 {message}";
+
+        // Stopki embeds
+        @SerializedName("chat_footer")
+        public String chatFooter = "📍 Znajduje się w: {dimension}";
+
+        @SerializedName("death_footer")
+        public String deathFooter = "📍 Świat: {dimension}";
+
+        @SerializedName("advancement_footer")
+        public String advancementFooter = "📍 Świat: {dimension}";
+
+        // Aktywność (status) bota
+        @SerializedName("player_count_presence")
+        public String playerCountPresence = "Obecnie graczy: {count}";
+
+        // Prefix autora dla śmierci gracza (np. "💀 {player}")
+        @SerializedName("death_author_prefix")
+        public String deathAuthorPrefix = "💀 {player}";
+
+        // Prefix autora dla osiągnięć (emoji zależy od typu, następnie "{player}")
+        @SerializedName("advancement_author_prefix_task")
+        public String advancementAuthorPrefixTask = "🥇 {player}";
+
+        @SerializedName("advancement_author_prefix_goal")
+        public String advancementAuthorPrefixGoal = "🎯 {player}";
+
+        @SerializedName("advancement_author_prefix_challenge")
+        public String advancementAuthorPrefixChallenge = "🏆 {player}";
+
+        // Prefix autora dla zmiany wymiaru
+        @SerializedName("dimension_change_author_prefix")
+        public String dimensionChangeAuthorPrefix = "🌀 {player}";
+    }
+
+    // ── Wewnętrzna klasa włączania/wyłączania zdarzeń ────────────────────────
+
+    /**
+     * Flagi włączające poszczególne typy zdarzeń wysyłanych na Discord.
+     * Ustaw na {@code false}, aby wyłączyć dane zdarzenie.
+     */
+    public static class Events {
+
+        @SerializedName("player_join")
+        public boolean playerJoin = true;
+
+        @SerializedName("player_leave")
+        public boolean playerLeave = true;
+
+        @SerializedName("player_death")
+        public boolean playerDeath = true;
+
+        @SerializedName("named_mob_death")
+        public boolean namedMobDeath = true;
+
+        @SerializedName("advancement")
+        public boolean advancement = true;
+
+        @SerializedName("dimension_change")
+        public boolean dimensionChange = true;
+
+        @SerializedName("server_lifecycle")
+        public boolean serverLifecycle = true;
+
+        @SerializedName("me_command")
+        public boolean meCommand = true;
+
+        @SerializedName("say_command")
+        public boolean sayCommand = true;
+
+        @SerializedName("chat")
+        public boolean chat = true;
+    }
+
     private static final Logger LOGGER = LoggerFactory.getLogger("ssmp_mod");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+
+    // ── Szablony wiadomości i zdarzenia ──────────────────────────────────────
+
+    @SerializedName("messages")
+    private Messages messages = new Messages();
+
+    @SerializedName("events")
+    private Events events = new Events();
+
+    /**
+     * Mapa nadpisań przyjaznych nazw wymiarów.
+     * Klucz: identyfikator wymiaru (np. "minecraft:overworld")
+     * Wartość: wyświetlana nazwa (np. "Nadświat")
+     */
+    @SerializedName("dimension_names")
+    private Map<String, String> dimensionNames = new HashMap<>();
 
     // ── Discord ──────────────────────────────────────────────────────────────
 
@@ -171,6 +327,27 @@ public class ModConfig {
      */
     public String getChannelForDimension(String dimensionId) {
         return channelDimensions.getOrDefault(dimensionId, chatChannelId);
+    }
+
+    public Messages getMessages() { return messages; }
+    public Events getEvents() { return events; }
+    public Map<String, String> getDimensionNames() { return dimensionNames; }
+
+    /**
+     * Formatuje szablon wiadomości, zastępując placeholdery wartościami.
+     * Placeholdery podawane są w parach: klucz, wartość (np. "player", "Steve").
+     *
+     * @param template  szablon z placeholderami w postaci {klucz}
+     * @param kvPairs   pary klucz-wartość (musi być parzysta liczba elementów)
+     * @return          sformatowany tekst
+     */
+    public static String format(String template, String... kvPairs) {
+        if (template == null) return "";
+        String result = template;
+        for (int i = 0; i + 1 < kvPairs.length; i += 2) {
+            result = result.replace("{" + kvPairs[i] + "}", kvPairs[i + 1] != null ? kvPairs[i + 1] : "");
+        }
+        return result;
     }
 
     public boolean isConfigured() {
