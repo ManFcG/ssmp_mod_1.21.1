@@ -121,9 +121,7 @@ public class DiscordCommands extends ListenerAdapter {
         String cmd    = event.getName();
 
         // Komendy wymagające admina
-        String subCmd = event.getSubcommandName(); // może być null dla komend bez subkomend
-        boolean requiresAdmin = List.of("ban", "unban", "op", "deop", "wykonaj").contains(cmd)
-                || (cmd.equals("whitelist") && !"lista".equals(subCmd));
+        boolean requiresAdmin = List.of("ban", "unban", "op", "deop", "wykonaj", "whitelist").contains(cmd);
 
         if (requiresAdmin && !config.isAdminUser(userId)) {
             event.reply("❌ Nie masz uprawnień do tej komendy.").setEphemeral(true).queue();
@@ -254,6 +252,10 @@ public class DiscordCommands extends ListenerAdapter {
     private void whitelistAdd(SlashCommandInteractionEvent event, MinecraftServer server) {
         String playerName = requireOption(event, "gracz");
         if (playerName == null) return;
+        if (!isValidPlayerName(playerName)) {
+            event.getHook().sendMessage("❌ Nieprawidłowa nazwa gracza.").queue();
+            return;
+        }
 
         executeServerCommand(server, "whitelist add " + playerName);
         event.getHook().sendMessage("✅ Gracz **" + playerName + "** został dodany do białej listy.").queue();
@@ -263,6 +265,10 @@ public class DiscordCommands extends ListenerAdapter {
     private void whitelistRemove(SlashCommandInteractionEvent event, MinecraftServer server) {
         String playerName = requireOption(event, "gracz");
         if (playerName == null) return;
+        if (!isValidPlayerName(playerName)) {
+            event.getHook().sendMessage("❌ Nieprawidłowa nazwa gracza.").queue();
+            return;
+        }
 
         executeServerCommand(server, "whitelist remove " + playerName);
         event.getHook().sendMessage("✅ Gracz **" + playerName + "** został usunięty z białej listy.").queue();
@@ -290,9 +296,13 @@ public class DiscordCommands extends ListenerAdapter {
 
         String playerName = requireOption(event, "gracz");
         if (playerName == null) return;
+        if (!isValidPlayerName(playerName)) {
+            event.getHook().sendMessage("❌ Nieprawidłowa nazwa gracza.").queue();
+            return;
+        }
 
         OptionMapping reasonOpt = event.getOption("powód");
-        String reason  = reasonOpt != null ? reasonOpt.getAsString() : "Zbanowany przez administrację";
+        String reason  = reasonOpt != null ? sanitizeReason(reasonOpt.getAsString()) : "Zbanowany przez administrację";
         String fullCmd = "ban " + playerName + " " + reason;
 
         executeServerCommand(server, fullCmd);
@@ -310,6 +320,10 @@ public class DiscordCommands extends ListenerAdapter {
 
         String playerName = requireOption(event, "gracz");
         if (playerName == null) return;
+        if (!isValidPlayerName(playerName)) {
+            event.getHook().sendMessage("❌ Nieprawidłowa nazwa gracza.").queue();
+            return;
+        }
 
         executeServerCommand(server, "pardon " + playerName);
         event.getHook().sendMessage("✅ Gracz **" + playerName + "** został odbanowany.").queue();
@@ -326,6 +340,10 @@ public class DiscordCommands extends ListenerAdapter {
 
         String playerName = requireOption(event, "gracz");
         if (playerName == null) return;
+        if (!isValidPlayerName(playerName)) {
+            event.getHook().sendMessage("❌ Nieprawidłowa nazwa gracza.").queue();
+            return;
+        }
 
         executeServerCommand(server, "op " + playerName);
         event.getHook().sendMessage("⭐ Gracz **" + playerName + "** otrzymał uprawnienia OP.").queue();
@@ -342,6 +360,10 @@ public class DiscordCommands extends ListenerAdapter {
 
         String playerName = requireOption(event, "gracz");
         if (playerName == null) return;
+        if (!isValidPlayerName(playerName)) {
+            event.getHook().sendMessage("❌ Nieprawidłowa nazwa gracza.").queue();
+            return;
+        }
 
         executeServerCommand(server, "deop " + playerName);
         event.getHook().sendMessage("🔕 Gracz **" + playerName + "** utracił uprawnienia OP.").queue();
@@ -403,5 +425,29 @@ public class DiscordCommands extends ListenerAdapter {
             case "minecraft:the_end"    -> "Kres";
             default -> dimId.replace("minecraft:", "").replace("_", " ");
         };
+    }
+
+    /**
+     * Sprawdza czy nazwa gracza jest zgodna z oficjalną specyfikacją Minecraft.
+     * Dozwolone: litery a-z, A-Z, cyfry 0-9 i podkreślnik _, długość 1-16 znaków.
+     * Odrzuca zarezerwowane nazwy systemowe.
+     */
+    private static boolean isValidPlayerName(String name) {
+        if (name == null || !name.matches("^[a-zA-Z0-9_]{1,16}$")) return false;
+        // Odrzuć zarezerwowane nazwy, które mają specjalne znaczenie dla serwera
+        String lower = name.toLowerCase();
+        return !lower.equals("console") && !lower.equals("rcon");
+    }
+
+    /**
+     * Usuwa znaki sterujące i ogranicza długość powodu bana do 256 znaków.
+     */
+    private static String sanitizeReason(String reason) {
+        if (reason == null) return "";
+        String sanitized = reason.replaceAll("[\\r\\n\\t\\x00-\\x1F]", " ").trim();
+        if (sanitized.length() > 256) {
+            sanitized = sanitized.substring(0, 256);
+        }
+        return sanitized;
     }
 }
