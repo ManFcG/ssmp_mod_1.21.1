@@ -1,5 +1,6 @@
 package pl.ssmp.mod.listener;
 
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -15,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.ssmp.mod.DiscordBridge;
 import pl.ssmp.mod.config.ModConfig;
+import pl.ssmp.mod.minecraft.commands.DiscordLinkCommand;
 
 /**
  * Nasłuchuje zdarzeń serwera Minecraft i przekazuje je do Discorda przez {@link DiscordBridge}.
@@ -49,6 +51,7 @@ public class MinecraftEventListener {
         registerGameMessages();
         registerEntityEvents();
         registerDimensionChange();
+        registerMinecraftCommands();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -72,6 +75,10 @@ public class MinecraftEventListener {
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
             bridge.sendServerStopped();
             bridge.shutdown();
+            if (bridge.getAccountLinkStorage() != null) {
+                bridge.getAccountLinkStorage().close();
+            }
+            pl.ssmp.mod.data.PendingLinksManager.shutdown();
         });
     }
 
@@ -178,6 +185,15 @@ public class MinecraftEventListener {
             String toDim      = destination.getRegistryKey().getValue().toString();
             bridge.sendDimensionChange(playerName, fromDim, toDim);
         });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Komendy Minecraft (/discord link, /discord unlink)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void registerMinecraftCommands() {
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
+                DiscordLinkCommand.register(dispatcher, bridge));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
