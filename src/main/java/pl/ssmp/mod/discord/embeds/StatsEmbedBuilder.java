@@ -14,6 +14,7 @@ public class StatsEmbedBuilder {
 
     private static final Color COLOR_ONLINE  = new Color(0x00AA44);
     private static final Color COLOR_OFFLINE = new Color(0x888888);
+    private static final String SPACER_FIELD = "\u200B";
 
     private StatsEmbedBuilder() {}
 
@@ -39,23 +40,23 @@ public class StatsEmbedBuilder {
         // Wiersz 1: Czas gry i śmierci
         eb.addField("⏱️ Czas gry",       formatTicks(stats.playTimeTicks), true);
         eb.addField("💀 Śmierci",         String.valueOf(stats.deaths),     true);
-        eb.addField("\u200B", "\u200B", true); // spacer dla 3-kolumnowego układu
+        eb.addField(SPACER_FIELD, SPACER_FIELD, true); // spacer dla 3-kolumnowego układu
 
         // Wiersz 2: Zabójstwa
         eb.addField("⚔️ Zabite moby",     String.valueOf(stats.mobKills),     true);
         eb.addField("🗡️ Zabici gracze",   String.valueOf(stats.playerKills),  true);
-        eb.addField("\u200B", "\u200B", true);
+        eb.addField(SPACER_FIELD, SPACER_FIELD, true);
 
         // Wiersz 3: Obrażenia
         eb.addField("❤️‍🔥 Zadane obrażenia",    formatDamage(stats.damageDealt), true);
         eb.addField("🛡️ Otrzymane obrażenia",   formatDamage(stats.damageTaken), true);
-        eb.addField("\u200B", "\u200B", true);
+        eb.addField(SPACER_FIELD, SPACER_FIELD, true);
 
         // Wiersz 4: Dystans i enchanty
         long totalMoveCm = stats.walkCm + stats.sprintCm;
         eb.addField("🚶 Pokonany dystans", formatDistance(totalMoveCm), true);
         eb.addField("✨ Enchantowane",     String.valueOf(stats.itemsEnchanted), true);
-        eb.addField("\u200B", "\u200B", true);
+        eb.addField(SPACER_FIELD, SPACER_FIELD, true);
 
         // Wiersz 5: Dodatkowe statystyki
         eb.addField("🦘 Skoki",           String.valueOf(stats.jumps),          true);

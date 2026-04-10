@@ -92,9 +92,11 @@ public class PlayerStatsReader {
             ps.tradedWithVillager   = getInt(custom,  "minecraft:traded_with_villager");
             ps.timeSinceDeathTicks  = getLong(custom, "minecraft:time_since_death");
 
-            ps.diamondOresMined     = getInt(mined, "minecraft:diamond_ore");
+            ps.diamondOresMined     = getInt(mined, "minecraft:diamond_ore")
+                                     + getInt(mined, "minecraft:deepslate_diamond_ore");
             ps.ancientDebrisMined   = getInt(mined, "minecraft:ancient_debris");
-            ps.coalOresMined        = getInt(mined, "minecraft:coal_ore");
+            ps.coalOresMined        = getInt(mined, "minecraft:coal_ore")
+                                     + getInt(mined, "minecraft:deepslate_coal_ore");
 
             ps.enderDragonKills     = getInt(killed, "minecraft:ender_dragon");
             ps.witherKills          = getInt(killed, "minecraft:wither");
