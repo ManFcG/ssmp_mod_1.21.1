@@ -47,6 +47,9 @@ dependencies {
         exclude group: 'club.minnced', module: 'opus-java'
         exclude group: 'org.slf4j',    module: 'slf4j-api'
     }
+
+    // SQLite – embedded database for Discord ↔ Minecraft account links
+    shade 'org.xerial:sqlite-jdbc:3.46.1.0'
 }
 
 processResources {

@@ -10,11 +10,16 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.storage.WorldSavePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.ssmp.mod.command.DiscordCommands;
 import pl.ssmp.mod.config.ModConfig;
+import pl.ssmp.mod.data.AccountLinkStorage;
+import pl.ssmp.mod.data.PlayerStatsReader;
+import pl.ssmp.mod.data.UserCacheReader;
 import pl.ssmp.mod.listener.DiscordEventListener;
 
 import java.awt.Color;
@@ -34,6 +39,11 @@ public class DiscordBridge {
     private MinecraftServer server;
     private final AtomicBoolean ready = new AtomicBoolean(false);
 
+    // Dane linkowania kont i statystyk
+    private final AccountLinkStorage accountLinkStorage;
+    private PlayerStatsReader playerStatsReader;
+    private UserCacheReader   userCacheReader;
+
     // Kolory embeds
     public static final Color COLOR_JOIN      = new Color(0x57F287); // zielony
     public static final Color COLOR_LEAVE     = new Color(0xED4245); // czerwony
@@ -46,8 +56,9 @@ public class DiscordBridge {
     public static final Color COLOR_CHAT      = new Color(0x99AAB5); // szary
     public static final Color COLOR_DIM       = new Color(0x5865F2); // niebieski
 
-    public DiscordBridge(ModConfig config) {
+    public DiscordBridge(ModConfig config, AccountLinkStorage accountLinkStorage) {
         this.config = config;
+        this.accountLinkStorage = accountLinkStorage;
         initJDA();
     }
 
@@ -92,6 +103,18 @@ public class DiscordBridge {
 
     public void setServer(MinecraftServer server) {
         this.server = server;
+        // Zainicjalizuj czytelniki danych zależnych od ścieżki świata
+        if (this.playerStatsReader == null) {
+            try {
+                java.nio.file.Path statsDir = server.getSavePath(WorldSavePath.ROOT).resolve("stats");
+                this.playerStatsReader = new PlayerStatsReader(statsDir);
+                java.nio.file.Path serverDir = FabricLoader.getInstance().getGameDir();
+                this.userCacheReader = new UserCacheReader(serverDir);
+                LOGGER.info("[SSMP] Inicjalizacja odczytu statystyk gracza: {}", statsDir);
+            } catch (Exception e) {
+                LOGGER.warn("[SSMP] Nie udało się zainicjalizować odczytu statystyk: {}", e.getMessage());
+            }
+        }
     }
 
     public MinecraftServer getServer() {
@@ -108,6 +131,18 @@ public class DiscordBridge {
 
     public ModConfig getConfig() {
         return config;
+    }
+
+    public AccountLinkStorage getAccountLinkStorage() {
+        return accountLinkStorage;
+    }
+
+    public PlayerStatsReader getPlayerStatsReader() {
+        return playerStatsReader;
+    }
+
+    public UserCacheReader getUserCacheReader() {
+        return userCacheReader;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

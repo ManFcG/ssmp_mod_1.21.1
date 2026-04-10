@@ -19,6 +19,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.ssmp.mod.DiscordBridge;
 import pl.ssmp.mod.config.ModConfig;
+import pl.ssmp.mod.discord.commands.LinkCommand;
+import pl.ssmp.mod.discord.commands.PlaytimeCommand;
+import pl.ssmp.mod.discord.commands.StatsCommand;
+import pl.ssmp.mod.discord.commands.UnlinkCommand;
+import pl.ssmp.mod.discord.commands.WhoisCommand;
 import pl.ssmp.mod.util.AvatarUtil;
 
 import java.awt.Color;
@@ -107,7 +112,25 @@ public class DiscordCommands extends ListenerAdapter {
                         .addOption(OptionType.STRING, "gracz", "Nazwa gracza", true),
 
                 Commands.slash("wykonaj", "Wykonaj komendę na serwerze (tylko admin)")
-                        .addOption(OptionType.STRING, "komenda", "Komenda do wykonania", true)
+                        .addOption(OptionType.STRING, "komenda", "Komenda do wykonania", true),
+
+                // ── Linkowanie kont ────────────────────────────────────────
+                Commands.slash("link", "Połącz konto Minecraft z kontem Discord")
+                        .addOption(OptionType.STRING, "kod", "Kod z Minecrafta (wpisz /discord link w grze)", true),
+
+                Commands.slash("unlink", "Rozłącz konto Minecraft od konta Discord"),
+
+                Commands.slash("whois", "Sprawdź konto Minecraft powiązane z kontem Discord")
+                        .addOption(OptionType.USER, "uzytkownik", "Użytkownik Discord", true),
+
+                // ── Statystyki ────────────────────────────────────────────
+                Commands.slash("stats", "Wyświetl statystyki gracza")
+                        .addOption(OptionType.USER,   "uzytkownik", "Użytkownik Discord (opcjonalne)", false)
+                        .addOption(OptionType.STRING, "nick",       "Nick Minecraft (opcjonalne)",     false),
+
+                Commands.slash("playtime", "Wyświetl czas gry gracza")
+                        .addOption(OptionType.USER,   "uzytkownik", "Użytkownik Discord (opcjonalne)", false)
+                        .addOption(OptionType.STRING, "nick",       "Nick Minecraft (opcjonalne)",     false)
         );
     }
 
@@ -122,7 +145,6 @@ public class DiscordCommands extends ListenerAdapter {
 
         // Komendy wymagające admina
         boolean requiresAdmin = List.of("ban", "unban", "op", "deop", "wykonaj", "whitelist").contains(cmd);
-
         if (requiresAdmin && !config.isAdminUser(userId)) {
             event.reply("❌ Nie masz uprawnień do tej komendy.").setEphemeral(true).queue();
             return;
@@ -143,6 +165,13 @@ public class DiscordCommands extends ListenerAdapter {
                     case "op"        -> handleOp(event);
                     case "deop"      -> handleDeop(event);
                     case "wykonaj"   -> handleWykonaj(event);
+                    // ── Linkowanie kont ───────────────────────────────────
+                    case "link"      -> LinkCommand.handle(event, bridge.getAccountLinkStorage());
+                    case "unlink"    -> UnlinkCommand.handle(event, bridge.getAccountLinkStorage());
+                    case "whois"     -> WhoisCommand.handle(event, bridge.getAccountLinkStorage(), config);
+                    // ── Statystyki ────────────────────────────────────────
+                    case "stats"     -> StatsCommand.handle(event, bridge);
+                    case "playtime"  -> PlaytimeCommand.handle(event, bridge);
                     default          -> event.getHook().sendMessage("❓ Nieznana komenda.").queue();
                 }
             } catch (Exception e) {
