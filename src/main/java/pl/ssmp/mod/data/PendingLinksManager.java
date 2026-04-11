@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 public class PendingLinksManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("ssmp_mod");
-    private static final int    EXPIRY_MINUTES = 10;
+    private static final int    EXPIRY_MINUTES = 1;
     private static final String CODE_CHARS     = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int    CODE_LENGTH    = 6;
 
@@ -51,7 +51,7 @@ public class PendingLinksManager {
         long expiresAt = System.currentTimeMillis() + EXPIRY_MINUTES * 60_000L;
         pendingCodes.put(code, new PendingLink(mcUuid, mcUsername, expiresAt));
 
-        // Automatyczne wygaśnięcie po 10 minutach
+        // Automatyczne wygaśnięcie po 1 minucie
         scheduler.schedule(() -> pendingCodes.remove(code), EXPIRY_MINUTES, TimeUnit.MINUTES);
 
         LOGGER.debug("[SSMP] Wygenerowano kod linkowania {} dla gracza {}", code, mcUsername);

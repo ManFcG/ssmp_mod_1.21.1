@@ -13,6 +13,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -103,6 +105,26 @@ public class AccountLinkStorage {
             LOGGER.error("[SSMP] Błąd odczytu account_links (mc_username={}): {}", mcUsername, e.getMessage());
             return Optional.empty();
         }
+    }
+
+    /** Pobiera wszystkie powiązania z bazy danych, posortowane po nazwie gracza. */
+    public synchronized List<AccountLink> getAll() {
+        List<AccountLink> list = new ArrayList<>();
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     "SELECT discord_id, mc_uuid, mc_username, linked_at FROM account_links ORDER BY mc_username")) {
+            while (rs.next()) {
+                list.add(new AccountLink(
+                        rs.getString("discord_id"),
+                        rs.getString("mc_uuid"),
+                        rs.getString("mc_username"),
+                        rs.getLong("linked_at")
+                ));
+            }
+        } catch (SQLException e) {
+            LOGGER.error("[SSMP] Błąd odczytu account_links (getAll): {}", e.getMessage());
+        }
+        return list;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

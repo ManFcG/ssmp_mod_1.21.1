@@ -3,6 +3,7 @@ package pl.ssmp.mod.discord.embeds;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import pl.ssmp.mod.model.PlayerStats;
+import pl.ssmp.mod.util.AvatarUtil;
 
 import java.awt.Color;
 import java.time.Instant;
@@ -28,14 +29,14 @@ public class StatsEmbedBuilder {
      */
     public static MessageEmbed build(String mcUsername, String mcUuid, PlayerStats stats, boolean online) {
         Color color = online ? COLOR_ONLINE : COLOR_OFFLINE;
-        String onlineStatus = online ? "🟢 Online" : "⚫ Offline";
+        String onlineStatus = online ? "Jest na serwerze" : "Nie jest na serwerze";
 
         EmbedBuilder eb = new EmbedBuilder()
                 .setTitle("📊 Statystyki gracza: " + mcUsername)
-                .setDescription("UUID: `" + mcUuid + "`")
                 .setColor(color)
                 .setTimestamp(Instant.now())
-                .setFooter("Dane odczytane bezpośrednio z pliku serwera | " + onlineStatus);
+                .setThumbnail(AvatarUtil.getHeadUrl(mcUsername))
+                .setFooter(onlineStatus);
 
         // Wiersz 1: Czas gry i śmierci
         eb.addField("⏱️ Czas gry",       formatTicks(stats.playTimeTicks), true);
@@ -59,7 +60,6 @@ public class StatsEmbedBuilder {
         eb.addField(SPACER_FIELD, SPACER_FIELD, true);
 
         // Wiersz 5: Dodatkowe statystyki
-        eb.addField("🦘 Skoki",           String.valueOf(stats.jumps),          true);
         eb.addField("💎 Diamenty",         String.valueOf(stats.diamondOresMined), true);
         eb.addField("🔥 Ancient Debris",   String.valueOf(stats.ancientDebrisMined), true);
 
@@ -71,16 +71,16 @@ public class StatsEmbedBuilder {
      */
     public static MessageEmbed buildPlaytime(String mcUsername, String mcUuid, PlayerStats stats, boolean online) {
         Color color = online ? COLOR_ONLINE : COLOR_OFFLINE;
-        String onlineStatus = online ? "🟢 Online" : "⚫ Offline";
+        String onlineStatus = online ? "Jest na serwerze" : "Nie jest na serwerze";
 
         return new EmbedBuilder()
                 .setTitle("⏱️ Czas gry: " + mcUsername)
-                .setDescription("UUID: `" + mcUuid + "`")
                 .addField("⏱️ Czas gry",   formatTicks(stats.playTimeTicks), true)
                 .addField("💀 Śmierci",    String.valueOf(stats.deaths),     true)
                 .setColor(color)
                 .setTimestamp(Instant.now())
-                .setFooter("Dane odczytane bezpośrednio z pliku serwera | " + onlineStatus)
+                .setThumbnail(AvatarUtil.getHeadUrl(mcUsername))
+                .setFooter(onlineStatus)
                 .build();
     }
 
