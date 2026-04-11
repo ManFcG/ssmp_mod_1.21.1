@@ -110,8 +110,7 @@ public class LinkCommand {
         return new EmbedBuilder()
                 .setTitle("✅ Konto połączone!")
                 .setColor(COLOR_SUCCESS)
-                .addField("⛏️ Minecraft", link.mcUsername() + "\n`UUID: " + link.mcUuid() + "`", false)
-                .addField("💬 Discord",   "@" + discordTag, false)
+                .addField("Minecraft", link.mcUsername(), false)
                 .setTimestamp(linkedInstant)
                 .setFooter("Połączono")
                 .build();

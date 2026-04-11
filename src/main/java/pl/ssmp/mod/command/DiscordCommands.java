@@ -19,11 +19,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.ssmp.mod.DiscordBridge;
 import pl.ssmp.mod.config.ModConfig;
+import pl.ssmp.mod.data.AccountLinkStorage;
 import pl.ssmp.mod.discord.commands.LinkCommand;
 import pl.ssmp.mod.discord.commands.PlaytimeCommand;
 import pl.ssmp.mod.discord.commands.StatsCommand;
 import pl.ssmp.mod.discord.commands.UnlinkCommand;
 import pl.ssmp.mod.discord.commands.WhoisCommand;
+import pl.ssmp.mod.model.AccountLink;
 import pl.ssmp.mod.util.AvatarUtil;
 
 import java.awt.Color;
@@ -52,6 +54,7 @@ import java.util.concurrent.CompletableFuture;
 public class DiscordCommands extends ListenerAdapter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("ssmp_mod");
+    private static final int DISCORD_MESSAGE_CHUNK_SIZE = 1990; // 2000 limit minus safety margin
 
     private final DiscordBridge bridge;
     private final ModConfig config;
@@ -123,6 +126,8 @@ public class DiscordCommands extends ListenerAdapter {
                 Commands.slash("whois", "Sprawdź konto Minecraft powiązane z kontem Discord")
                         .addOption(OptionType.USER, "uzytkownik", "Użytkownik Discord", true),
 
+                Commands.slash("zlinkowane", "Wyświetl wszystkie zlinkowane konta (tylko admin)"),
+
                 // ── Statystyki ────────────────────────────────────────────
                 Commands.slash("stats", "Wyświetl statystyki gracza")
                         .addOption(OptionType.USER,   "uzytkownik", "Użytkownik Discord (opcjonalne)", false)
@@ -151,7 +156,8 @@ public class DiscordCommands extends ListenerAdapter {
         }
 
         // Odroczone odpowiedzi – operacje mogą wymagać wątku serwerowego
-        event.deferReply().queue();
+        boolean ephemeral = List.of("link", "zlinkowane").contains(cmd);
+        event.deferReply(ephemeral).queue();
 
         CompletableFuture.runAsync(() -> {
             try {
@@ -169,6 +175,7 @@ public class DiscordCommands extends ListenerAdapter {
                     case "link"      -> LinkCommand.handle(event, bridge.getAccountLinkStorage());
                     case "unlink"    -> UnlinkCommand.handle(event, bridge.getAccountLinkStorage());
                     case "whois"     -> WhoisCommand.handle(event, bridge.getAccountLinkStorage(), config);
+                    case "zlinkowane"-> handleZlinkowane(event);
                     // ── Statystyki ────────────────────────────────────────
                     case "stats"     -> StatsCommand.handle(event, bridge);
                     case "playtime"  -> PlaytimeCommand.handle(event, bridge);
@@ -419,6 +426,42 @@ public class DiscordCommands extends ListenerAdapter {
         });
         event.getHook().sendMessage("✅ Komenda **`" + command + "`** została wysłana do serwera.").queue();
         LOGGER.info("[SSMP] Wykonano komendę: '{}' (przez {})", command, event.getUser().getEffectiveName());
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // /zlinkowane
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void handleZlinkowane(SlashCommandInteractionEvent event) {
+        if (!config.isAdminUser(event.getUser().getId())) {
+            event.getHook().sendMessage("❌ Nie masz uprawnień do tej komendy.").queue();
+            return;
+        }
+
+        List<AccountLink> all = bridge.getAccountLinkStorage().getAll();
+        if (all.isEmpty()) {
+            event.getHook().sendMessage("📋 Brak zlinkowanych kont.").queue();
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder("**📋 Zlinkowane konta (" + all.size() + "):**\n");
+        for (AccountLink link : all) {
+            sb.append('`').append(link.mcUuid()).append("` – <@").append(link.discordId()).append(">\n");
+        }
+
+        // Discord message limit is 2000 characters – split if needed
+        String text = sb.toString();
+        if (text.length() <= 2000) {
+            event.getHook().sendMessage(text).queue();
+        } else {
+            int start = 0;
+            while (start < text.length()) {
+                int end = Math.min(start + DISCORD_MESSAGE_CHUNK_SIZE, text.length());
+                event.getHook().sendMessage(text.substring(start, end)).queue();
+                start = end;
+            }
+        }
+        LOGGER.info("[SSMP] Zlinkowane konta wyświetlone przez {}", event.getUser().getEffectiveName());
     }
 
     // ─────────────────────────────────────────────────────────────────────────
